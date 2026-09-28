@@ -22,65 +22,6 @@ The API supports:
 * Automatic result grading based on scores
 * Consistent error responses
 
-## Getting started
-
-Clone the project and install the dependencies:
-
-```bash
-cd school-management-system
-npm install
-```
-
-Create your environment file:
-
-```bash
-cp .env.example .env
-```
-
-Set a secure `JWT_SECRET` in `.env`, then start the server:
-
-```bash
-npm run dev
-```
-
-Or:
-
-```bash
-npm start
-```
-
-By default, the API runs on:
-
-```text
-http://localhost:5000
-```
-
-You can change the port through the `PORT` environment variable.
-
-## Environment variables
-
-| Variable         | Purpose                  | Example            |
-| ---------------- | ------------------------ | ------------------ |
-| `PORT`           | Server port              | `5000`             |
-| `JWT_SECRET`     | Secret used to sign JWTs | `your-long-secret` |
-| `JWT_EXPIRES_IN` | JWT expiration time      | `1h`               |
-| `SALT_ROUNDS`    | bcrypt salt rounds       | `10`               |
-
-## Test accounts
-
-The project comes with a few accounts for testing the protected endpoints.
-
-| Role    | Email                     | Password      |
-| ------- | ------------------------- | ------------- |
-| Admin   | `admin@school.com`        | `Admin@123`   |
-| Teacher | `grace.okafor@school.com` | `Teacher@123` |
-| Student | `tunde.bello@school.com`  | `Student@123` |
-
-These are development/test accounts and should not be used in a production environment.
-
-Anyone can register through the API, but public registration only allows the `teacher` and `student` roles. Admin accounts have to be created separately.
-
-The student account is connected to a student record using the email address. For example, `tunde.bello@school.com` is linked to student record `id: 1`.
 
 ## Project structure
 
@@ -95,7 +36,6 @@ school-management-system/
 │   ├── data/
 │   ├── app.js
 │   └── server.js
-├── school-management-system.postman_collection.json
 ├── .env.example
 └── README.md
 ```
@@ -430,39 +370,6 @@ Errors are handled through a global error handler so that API responses follow t
 
 Unexpected errors are logged on the server, while the API returns a general `500` response instead of exposing internal error details.
 
-## Testing with Postman
-
-The repository includes:
-
-```text
-school-management-system.postman_collection.json
-```
-
-Import the collection into **Postman** and start the server before running the requests.
-
-The collection can also be imported into **Thunder Client**.
-
-The requests are arranged so that you can test the application from authentication through the different resources. Login requests save the returned JWTs, while create requests save generated IDs for later requests.
-
-The collection also includes tests for:
-
-* Registration and login
-* Protected routes
-* Invalid and missing tokens
-* Role permissions
-* CRUD operations
-* Validation failures
-* Duplicate records
-* Result creation and updates
-* Error responses
-
-Because the API uses in-memory data, restart the server before running the collection again if you want to start with the original seed data.
-
-You can also run the collection with Newman:
-
-```bash
-npx newman run school-management-system.postman_collection.json
-```
 
 ## Note
 
