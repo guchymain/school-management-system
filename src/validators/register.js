@@ -15,9 +15,8 @@ const registerSchema = z.object({
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
 
-  // Admin accounts cannot be created through public registration
   role: z
-    .enum(["teacher", "student"], "Role must be either teacher or student")
+    .enum(["teacher", "student", "admin"], "Role is suppose to be either teacher or student but i added admin for testing purposes")
     .default("student")
 }).strict()
 

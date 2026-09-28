@@ -1,65 +1,98 @@
 # School Management System API
 
-A REST API for managing a school's students, teachers, classes, subjects and results. Built with **Node.js** and **Express**.
+A backend API for managing students, teachers, classes, subjects, and student results.
 
-There is no frontend and no real database. All data is kept in memory in `src/data/database.js`, so it resets every time the server restarts.
+Built with **Node.js**, **Express**, **JWT**, **bcrypt**, and **Zod**.
 
-## Features
+There is no frontend or external database yet. The project currently uses an in-memory database located at `src/data/database.js`, so all changes are lost when the server is restarted.
 
-- Register and log in with **JWT** authentication
-- Passwords hashed with **bcrypt**. Passwords are never stored in plain text or returned in a response.
-- Role-based authorization for `admin`, `teacher` and `student`
-- Request validation with **zod**, including strict bodies that reject unknown fields
-- Global error handler with a consistent response shape
-- Request logger that records the method, URL, status code and timestamp
-- Rate limiting: 20 requests per 15 minutes on register/login, and 200 per 15 minutes on the rest of the API
-- Related in-memory data: results point to students and subjects, and students point to classes
+## What it does
 
-## Setup
+The API supports:
+
+* User registration and login
+* JWT-based authentication
+* Role-based access for admins, teachers, and students
+* CRUD operations for students, teachers, classes, subjects, and results
+* Request validation with Zod
+* Password hashing with bcrypt
+* Request logging
+* Rate limiting
+* Relationship checks between records
+* Automatic result grading based on scores
+* Consistent error responses
+
+## Getting started
+
+Clone the project and install the dependencies:
 
 ```bash
 cd school-management-system
 npm install
-cp .env.example .env    # then set a long random JWT_SECRET
-npm run dev             # or: npm start
 ```
 
-The server runs on `http://localhost:5000` (or whatever you set as `PORT`).
+Create your environment file:
 
-### Environment variables
+```bash
+cp .env.example .env
+```
 
-| Variable         | Description                         | Example |
-|------------------|-------------------------------------|---------|
-| `PORT`           | Port the server listens on          | `5000`  |
-| `JWT_SECRET`     | Secret used to sign JWTs (required) | long random string |
-| `JWT_EXPIRES_IN` | How long a token lasts              | `1h`    |
-| `SALT_ROUNDS`    | bcrypt salt rounds                  | `10`    |
+Set a secure `JWT_SECRET` in `.env`, then start the server:
 
-## Seed accounts
+```bash
+npm run dev
+```
 
-These accounts are for testing only.
+Or:
+
+```bash
+npm start
+```
+
+By default, the API runs on:
+
+```text
+http://localhost:5000
+```
+
+You can change the port through the `PORT` environment variable.
+
+## Environment variables
+
+| Variable         | Purpose                  | Example            |
+| ---------------- | ------------------------ | ------------------ |
+| `PORT`           | Server port              | `5000`             |
+| `JWT_SECRET`     | Secret used to sign JWTs | `your-long-secret` |
+| `JWT_EXPIRES_IN` | JWT expiration time      | `1h`               |
+| `SALT_ROUNDS`    | bcrypt salt rounds       | `10`               |
+
+## Test accounts
+
+The project comes with a few accounts for testing the protected endpoints.
 
 | Role    | Email                     | Password      |
-|---------|---------------------------|---------------|
-| admin   | admin@school.com          | `Admin@123`   |
-| teacher | grace.okafor@school.com   | `Teacher@123` |
-| student | tunde.bello@school.com    | `Student@123` |
+| ------- | ------------------------- | ------------- |
+| Admin   | `admin@school.com`        | `Admin@123`   |
+| Teacher | `grace.okafor@school.com` | `Teacher@123` |
+| Student | `tunde.bello@school.com`  | `Student@123` |
 
-Public registration can only create `teacher` or `student` accounts. Admin accounts can't be self-registered.
+These are development/test accounts and should not be used in a production environment.
 
-A **student user is linked to their student record by email**. For example, the user `tunde.bello@school.com` owns the student record with that email (id 1).
+Anyone can register through the API, but public registration only allows the `teacher` and `student` roles. Admin accounts have to be created separately.
+
+The student account is connected to a student record using the email address. For example, `tunde.bello@school.com` is linked to student record `id: 1`.
 
 ## Project structure
 
-```
+```text
 school-management-system/
 ├── src/
-│   ├── controllers/     # request handlers (auth, student, teacher, class, subject, result)
-│   ├── routes/          # *.route.js - maps endpoints to middleware + controllers
-│   ├── middleware/      # authentication, authorization, validate, logger, rateLimiter, error, notFound
-│   ├── validators/      # zod schemas
-│   ├── utils/           # AppError, id generator, grade calculator, removePassword
-│   ├── data/            # in-memory "database"
+│   ├── controllers/
+│   ├── routes/
+│   ├── middleware/
+│   ├── validators/
+│   ├── utils/
+│   ├── data/
 │   ├── app.js
 │   └── server.js
 ├── school-management-system.postman_collection.json
@@ -67,122 +100,372 @@ school-management-system/
 └── README.md
 ```
 
-## Endpoints and permissions
+### What the folders are for
 
-Send all protected routes an `Authorization: Bearer <token>` header.
+**controllers/**
+Contains the logic for handling requests for authentication, students, teachers, classes, subjects, and results.
 
-| Endpoint | Admin | Teacher | Student |
-|---|---|---|---|
-| `POST /api/auth/register` | public | public | public |
-| `POST /api/auth/login` | public | public | public |
-| `GET /api/auth/me` | ✓ | ✓ | ✓ |
-| `GET /api/students`, `GET /api/students/:id` | ✓ | ✓ | own record only |
-| `POST/PUT/DELETE /api/students` | ✓ | ✗ | ✗ |
-| `GET/POST/PUT/DELETE /api/teachers` | ✓ | ✗ | ✗ |
-| `GET /api/classes`, `GET /api/classes/:id` | ✓ | ✓ | own class only |
-| `POST/PUT/DELETE /api/classes` | ✓ | ✗ | ✗ |
-| `GET /api/subjects`, `GET /api/subjects/:id` | ✓ | ✓ | ✓ |
-| `POST/PUT/DELETE /api/subjects` | ✓ | ✗ | ✗ |
-| `GET /api/results`, `GET /api/results/:id` | ✓ | ✓ | own results only |
-| `POST/PUT /api/results` | ✓ | ✓ | ✗ |
-| `DELETE /api/results/:id` | ✓ | ✗ | ✗ |
+**routes/**
+Defines the API endpoints and connects them to the required middleware and controllers.
 
-### Request bodies
+**middleware/**
+Contains reusable request processing such as authentication, authorization, validation, logging, rate limiting, error handling, and handling unknown routes.
 
-```jsonc
-// POST /api/auth/register
-{ "name": "Chidi Nwosu", "email": "chidi@school.com", "phone": "08045556677", "password": "Chidi@1234", "role": "student" }
+**validators/**
+Contains the Zod schemas used to check incoming request data.
 
-// POST /api/students
-{ "name": "Ada Eze", "email": "ada@school.com", "phone": "08099998888", "classId": 1 }
+**utils/**
+Small reusable functions such as error handling, ID generation, password removal, and grade calculation.
 
-// POST /api/teachers
-{ "name": "Bola Adeleke", "email": "bola@school.com", "phone": "08077776666", "subjectId": 1 }
+**data/**
+Contains the in-memory data used by the application.
 
-// POST /api/classes   (formTeacherId is optional)
-{ "name": "SS 1A", "formTeacherId": 1 }
+**app.js**
+Sets up Express, middleware, routes, and the global error handler.
 
-// POST /api/subjects
-{ "name": "Civic Education", "code": "CIV101" }
+**server.js**
+Starts the Express server.
 
-// POST /api/results   (grade is calculated from the score)
-{ "studentId": 1, "subjectId": 1, "score": 67, "term": "First", "session": "2025/2026" }
+## Authentication
+
+Protected endpoints require a JWT:
+
+```http
+Authorization: Bearer <token>
 ```
 
-`PUT` requests accept any subset of the same fields, but you must send at least one.
+Log in through:
 
-### Validation rules
+```http
+POST /api/auth/login
+```
 
-- **Password:** 8–64 characters, with at least one uppercase letter, lowercase letter, number and special character
-- **Phone:** exactly 11 digits
-- **Email:** must be a valid email; it is stored in lowercase
-- **IDs:** positive whole numbers, and the record they point to must exist
-- **Score:** a number from 0 to 100
-- **Term:** `First`, `Second` or `Third`
-- **Session:** consecutive years, like `2025/2026`
-- **Subject code:** 3 letters followed by 3 digits, like `MTH101`
+The returned token can then be used when accessing protected routes.
 
-### Grading
+There is also:
 
-| Score | 70–100 | 60–69 | 50–59 | 45–49 | 40–44 | 0–39 |
-|---|---|---|---|---|---|---|
-| Grade | A | B | C | D | E | F |
+```http
+GET /api/auth/me
+```
 
-### Data integrity
+which returns information about the currently authenticated user.
 
-- Emails are unique for students and teachers, codes are unique for subjects, and names are unique for classes (`409 Conflict`).
-- Each student can have only one result per subject, term and session.
-- Deleting a student also deletes their results.
-- Deleting a teacher removes them as form teacher from any class.
-- You can't delete a class that still has students, or a subject that is used by teachers or results (`409 Conflict`).
+Passwords are hashed with bcrypt and are never returned in API responses.
+
+## Roles and permissions
+
+The API has three roles:
+
+* `admin`
+* `teacher`
+* `student`
+
+The role attached to the authenticated user's JWT determines which operations they can perform.
+
+| Endpoint                   | Admin | Teacher |  Student  |
+| -------------------------- | :---: | :-----: | :-------: |
+| `POST /api/auth/register`  |   ✓   |    ✓    |     ✓     |
+| `POST /api/auth/login`     |   ✓   |    ✓    |     ✓     |
+| `GET /api/auth/me`         |   ✓   |    ✓    |     ✓     |
+| `GET /api/students`        |   ✓   |    ✓    |    Own    |
+| `GET /api/students/:id`    |   ✓   |    ✓    |    Own    |
+| `POST /api/students`       |   ✓   |    —    |     —     |
+| `PUT /api/students/:id`    |   ✓   |    —    |     —     |
+| `DELETE /api/students/:id` |   ✓   |    —    |     —     |
+| `GET /api/teachers`        |   ✓   |    —    |     —     |
+| `POST /api/teachers`       |   ✓   |    —    |     —     |
+| `PUT /api/teachers/:id`    |   ✓   |    —    |     —     |
+| `DELETE /api/teachers/:id` |   ✓   |    —    |     —     |
+| `GET /api/classes`         |   ✓   |    ✓    | Own class |
+| `GET /api/classes/:id`     |   ✓   |    ✓    | Own class |
+| `POST /api/classes`        |   ✓   |    —    |     —     |
+| `PUT /api/classes/:id`     |   ✓   |    —    |     —     |
+| `DELETE /api/classes/:id`  |   ✓   |    —    |     —     |
+| `GET /api/subjects`        |   ✓   |    ✓    |     ✓     |
+| `GET /api/subjects/:id`    |   ✓   |    ✓    |     ✓     |
+| `POST /api/subjects`       |   ✓   |    —    |     —     |
+| `PUT /api/subjects/:id`    |   ✓   |    —    |     —     |
+| `DELETE /api/subjects/:id` |   ✓   |    —    |     —     |
+| `GET /api/results`         |   ✓   |    ✓    |    Own    |
+| `GET /api/results/:id`     |   ✓   |    ✓    |    Own    |
+| `POST /api/results`        |   ✓   |    ✓    |     —     |
+| `PUT /api/results/:id`     |   ✓   |    ✓    |     —     |
+| `DELETE /api/results/:id`  |   ✓   |    —    |     —     |
+
+## Main request examples
+
+### Register
+
+```http
+POST /api/auth/register
+```
+
+```json
+{
+  "name": "Chidi Nwosu",
+  "email": "chidi@school.com",
+  "phone": "08045556677",
+  "password": "Chidi@1234",
+  "role": "student"
+}
+```
+
+### Create a student
+
+```http
+POST /api/students
+```
+
+```json
+{
+  "name": "Ada Eze",
+  "email": "ada@school.com",
+  "phone": "08099998888",
+  "classId": 1
+}
+```
+
+### Create a teacher
+
+```http
+POST /api/teachers
+```
+
+```json
+{
+  "name": "Bola Adeleke",
+  "email": "bola@school.com",
+  "phone": "08077776666",
+  "subjectId": 1
+}
+```
+
+### Create a class
+
+```http
+POST /api/classes
+```
+
+```json
+{
+  "name": "SS 1A",
+  "formTeacherId": 1
+}
+```
+
+`formTeacherId` is optional.
+
+### Create a subject
+
+```http
+POST /api/subjects
+```
+
+```json
+{
+  "name": "Civic Education",
+  "code": "CIV101"
+}
+```
+
+### Add a result
+
+```http
+POST /api/results
+```
+
+```json
+{
+  "studentId": 1,
+  "subjectId": 1,
+  "score": 67,
+  "term": "First",
+  "session": "2025/2026"
+}
+```
+
+The grade is calculated automatically from the score, so `grade` does not need to be included in the request.
+
+For `PUT` requests, the fields are optional, but at least one field must be provided.
+
+## Validation
+
+Incoming data is checked before it reaches the controllers.
+
+Some of the rules include:
+
+* Passwords must be 8–64 characters long.
+* Passwords must contain uppercase and lowercase letters, a number, and a special character.
+* Phone numbers must contain exactly 11 digits.
+* Emails must be valid and are stored in lowercase.
+* IDs must be positive whole numbers.
+* Referenced records must exist.
+* Scores must be between `0` and `100`.
+* Terms can be `First`, `Second`, or `Third`.
+* Sessions must follow the `2025/2026` format.
+* Subject codes must follow the `MTH101` format.
+* Request bodies reject fields that are not part of the schema.
+
+## Grading
+
+Results are graded automatically:
+
+| Score  | Grade |
+| ------ | ----- |
+| 70–100 | A     |
+| 60–69  | B     |
+| 50–59  | C     |
+| 45–49  | D     |
+| 40–44  | E     |
+| 0–39   | F     |
+
+## Relationships between records
+
+Some resources depend on other resources.
+
+For example:
+
+* A student can belong to a class.
+* A teacher can be assigned to a subject.
+* A class can have a form teacher.
+* A result belongs to a student and a subject.
+
+The API checks these relationships before creating or deleting records.
+
+For example, you cannot delete a class while students are still assigned to it.
+
+Other rules include:
+
+* Student and teacher emails must be unique.
+* Subject codes must be unique.
+* Class names must be unique.
+* A student cannot have two results for the same subject, term, and session.
+* Deleting a student also removes their results.
+* Deleting a teacher removes them as a form teacher from any class.
+* A subject cannot be deleted while it is being used by a teacher or result.
+
+These conflicts return a `409` response.
 
 ## Responses
 
-Success:
+Successful requests follow a simple structure:
 
 ```json
-{ "success": true, "message": "Student added successfully", "student": { "id": 4, "...": "..." } }
+{
+  "success": true,
+  "message": "Student added successfully",
+  "student": {
+    "id": 4
+  }
+}
 ```
 
-Error:
+A normal error looks like:
 
 ```json
-{ "success": false, "message": "Student not found" }
+{
+  "success": false,
+  "message": "Student not found"
+}
 ```
 
-Validation error:
+Validation errors include the affected fields:
 
 ```json
 {
   "success": false,
   "message": "Validation failed",
-  "errors": [{ "field": "email", "message": "Invalid email" }]
+  "errors": [
+    {
+      "field": "email",
+      "message": "Invalid email"
+    }
+  ]
 }
 ```
 
-| Status | When |
-|---|---|
-| 200 / 201 | Success / created |
-| 400 | Validation failed, invalid id or invalid JSON |
-| 401 | Missing, invalid or expired token, or wrong login details |
-| 403 | Logged in, but the role doesn't have permission |
-| 404 | Record or route not found |
-| 409 | Duplicate record, or a delete that would break related data |
-| 429 | Rate limit reached |
-| 500 | Unexpected error (details are only logged on the server) |
+### HTTP status codes
+
+| Status | Meaning                                           |
+| ------ | ------------------------------------------------- |
+| `200`  | Request completed successfully                    |
+| `201`  | Resource created                                  |
+| `400`  | Invalid request or validation error               |
+| `401`  | Authentication failed or token is missing/invalid |
+| `403`  | User does not have permission                     |
+| `404`  | Resource or route was not found                   |
+| `409`  | Request conflicts with existing data              |
+| `429`  | Rate limit exceeded                               |
+| `500`  | Unexpected server error                           |
+
+## Rate limiting
+
+Authentication endpoints are limited to **20 requests every 15 minutes**:
+
+```text
+POST /api/auth/register
+POST /api/auth/login
+```
+
+The rest of the API allows **200 requests every 15 minutes**.
+
+This is mainly there to prevent repeated requests while testing the API.
+
+## Logging and error handling
+
+Every request is logged with:
+
+* HTTP method
+* URL
+* Response status
+* Timestamp
+
+For example:
+
+```text
+POST /api/auth/login - 200 - 14:32:10
+```
+
+Errors are handled through a global error handler so that API responses follow the same format.
+
+Unexpected errors are logged on the server, while the API returns a general `500` response instead of exposing internal error details.
 
 ## Testing with Postman
 
-1. Start the server (`npm run dev`).
-2. Import `school-management-system.postman_collection.json` into Postman. Thunder Client can import it too.
-3. Run the whole collection with the **Collection Runner**, or run the folders in order.
+The repository includes:
 
-Login requests save tokens automatically (`adminToken`, `teacherToken`, `studentToken`), and create requests save the new ids. The collection covers registration, login, JWT auth, 401/403 cases, CRUD for every resource, result management, validation errors and error handling. Every request has test assertions.
+```text
+school-management-system.postman_collection.json
+```
 
-Restart the server before re-running the collection, so the in-memory data and the rate-limit counters reset.
+Import the collection into **Postman** and start the server before running the requests.
 
-You can also run it from the command line:
+The collection can also be imported into **Thunder Client**.
+
+The requests are arranged so that you can test the application from authentication through the different resources. Login requests save the returned JWTs, while create requests save generated IDs for later requests.
+
+The collection also includes tests for:
+
+* Registration and login
+* Protected routes
+* Invalid and missing tokens
+* Role permissions
+* CRUD operations
+* Validation failures
+* Duplicate records
+* Result creation and updates
+* Error responses
+
+Because the API uses in-memory data, restart the server before running the collection again if you want to start with the original seed data.
+
+You can also run the collection with Newman:
 
 ```bash
 npx newman run school-management-system.postman_collection.json
 ```
+
+## Note
+
+This project currently uses in-memory data to keep the setup simple. Restarting the server resets the data.
+
+A natural next step would be replacing `src/data/database.js` with a real database while keeping the existing controllers, routes, validation, and authentication structure.

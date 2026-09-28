@@ -1,7 +1,6 @@
 const bcrypt = require("bcrypt")
 
-// Seed accounts so the API can be tested straight away.
-// Passwords are hashed on startup - plain-text passwords are never stored.
+
 const hash = (password) => bcrypt.hashSync(password, Number(process.env.SALT_ROUNDS) || 10)
 
 const users = [
@@ -9,7 +8,7 @@ const users = [
     id: 1,
     name: "Warchief",
     email: "admin@school.com",
-    phone: "08010000001",
+    phone: "07049665982",
     password: hash("Admin@123"),
     role: "admin",
   },

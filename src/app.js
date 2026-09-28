@@ -13,13 +13,10 @@ const classRoutes = require("./routes/class.route")
 const subjectRoutes = require("./routes/subject.route")
 const resultRoutes = require("./routes/result.route")
 
-// Don't reveal that the server runs Express
-app.disable("x-powered-by")
 
 app.use(logger)
 app.use(express.json({ limit: "10kb" }))
 
-//Routes
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
@@ -35,7 +32,6 @@ app.use("/api/classes", classRoutes)
 app.use("/api/subjects", subjectRoutes)
 app.use("/api/results", resultRoutes)
 
-//404 and errorHandler
 app.use(notFound)
 app.use(errorHandler)
 
